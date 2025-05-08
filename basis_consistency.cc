@@ -2231,22 +2231,30 @@ void ensure_global_consistency(uint64_t n,
 			       std::vector<uint8_t>& pair_states,
 			       std::vector<uint8_t>& basis_states,
 			       bool& has_contradiction,
-			       uint64_t starting_position) {
+			       uint64_t starting_position,
+			       uint64_t max_i,
+			       uint64_t max_j,
+			       uint64_t max_k) {
   has_contradiction = false;
   bool changed = true;
 
   uint64_t i1,j1,k1;
 
   std::tie(i1,j1,k1) = unpair3d(starting_position);
+
+  // Apply bounds if provided
+  max_i = (max_i == UINT64_MAX) ? n - 2 : std::min(max_i, n - 2);
+  max_j = (max_j == UINT64_MAX) ? n - 1 : std::min(max_j, n - 1);
+  max_k = (max_k == UINT64_MAX) ? n : std::min(max_k, n);
     
   while (changed) {
     changed = false;
         
     // Iterate through all possible basis pairs using direct variable
     // loops
-    for (; i1 < n-2; ++i1) {
-      for (; j1 < n-1; ++j1) {
-	for (; k1 < n; ++k1) {
+    for (; i1 < max_i; ++i1) {
+      for (; j1 < max_j; ++j1) {
+	for (; k1 < max_k; ++k1) {
 	  // This is our first basis triplet (i1,j1,k1)
 	  uint64_t basis1_idx = pair3d(i1, j1, k1);
                     
