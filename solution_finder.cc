@@ -103,7 +103,8 @@ SATSolution determine_solution
     uint8_t current_state = basis_states[basis_idx];
     // if the basis is either already fixed or trivially fixed,
     // continue to the next.
-    update_basis_states(i, j, k, 
+    update_basis_states(i, j, k,
+			basis_idx,
 			term_states, 
 			pair_states, 
 			basis_states);
@@ -127,6 +128,7 @@ SATSolution determine_solution
 	  update_basis_states(std::get<0>(ijk),
 			      std::get<1>(ijk),
 			      std::get<2>(ijk),
+			      basis_index,
 			      term_states,
 			      pair_states,
 			      basis_states);
@@ -136,13 +138,17 @@ SATSolution determine_solution
       }
     } while(changed);
 
+    uint64_t starting_basis_pair =
+      pair2d(starting_position,starting_position + 1);
+    uint64_t ending_basis_pair =
+      calculate_array_size_2d(calculate_array_size_3d(n));
     bool has_contradiction = false;
-    ensure_global_consistency(term_states.size(),
-			      term_states,
+    ensure_global_consistency(term_states,
 			      pair_states,
 			      basis_states,
 			      has_contradiction,
-			      starting_position);
+			      starting_basis_pair,
+			      ending_basis_pair);
     starting_position = basis_idx;
   }
   SATSolution solution;

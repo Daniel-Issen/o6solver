@@ -159,12 +159,14 @@ bool check_satisfiability
   }
   // Run global consistency check
   bool has_contradiction = false;
+  uint64_t ending_basis_pair =
+    calculate_array_size_2d(calculate_array_size_3d(working_num_vars));
   auto start = std::chrono::high_resolution_clock::now();
-  ensure_global_consistency(working_num_vars, 
-			    term_states, 
+  ensure_global_consistency(term_states, 
 			    pair_states, 
 			    basis_states, 
-			    has_contradiction);
+			    has_contradiction,
+			    0,ending_basis_pair);
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = 
     std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

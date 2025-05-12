@@ -50,6 +50,7 @@ UpdateResult update_pair_states(uint64_t i, uint64_t j,
 // Update basis, pair, and term states to maintain consistency
 // Returns detailed result about what happened during update
 UpdateResult update_basis_states(uint64_t i, uint64_t j, uint64_t k,
+				 uint64_t basis_idx,
 				 std::vector<uint8_t>& term_states,
 				 std::vector<uint8_t>& pair_states,
 				 std::vector<uint8_t>& basis_states);
@@ -61,15 +62,10 @@ UpdateResult ensure_basis_consistency(
     std::vector<uint8_t>& basis_states);
 
 // Ensure consistency across all bases in the system
-void ensure_global_consistency(
-    uint64_t n,
-    std::vector<uint8_t>& term_states,
-    std::vector<uint8_t>& pair_states,
-    std::vector<uint8_t>& basis_states,
-    bool& has_contradiction,
-    uint64_t starting_position = 0,
-    uint64_t max_i = UINT64_MAX,  // upper bound for i
-    uint64_t max_j = UINT64_MAX,  // upper bound for j
-    uint64_t max_k = UINT64_MAX   // upper bound for k
-);
+void ensure_global_consistency(std::vector<uint8_t>& term_states,
+			       std::vector<uint8_t>& pair_states,
+			       std::vector<uint8_t>& basis_states,
+			       bool& has_contradiction,
+			       uint64_t starting_basis_pair,
+			       uint64_t ending_basis_pair);
 

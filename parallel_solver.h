@@ -32,10 +32,8 @@
 
 // Structure to hold work segment boundaries
 struct WorkSegment {
-  uint64_t start_position;
-  uint64_t max_i;
-  uint64_t max_j;
-  uint64_t max_k;
+  uint64_t starting_basis_pair;
+  uint64_t ending_basis_pair;
 };
 
 // Structure to hold worker results
@@ -52,7 +50,6 @@ std::vector<WorkSegment> divide_work(uint64_t n, int num_workers);
 
 // Worker function that processes a segment
 WorkerResult process_segment(const WorkSegment& segment,
-			     uint64_t n,
 			     const std::vector<uint8_t>& term_states,
 			     const std::vector<uint8_t>& pair_states,
 			     const std::vector<uint8_t>& basis_states);

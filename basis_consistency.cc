@@ -1752,6 +1752,7 @@ UpdateResult update_pair_states(uint64_t i, uint64_t j,
 // propagate term states to pairs to a basis then propage the basis
 // state back down to the pairs and terms.
 UpdateResult update_basis_states(uint64_t i, uint64_t j, uint64_t k,
+				 uint64_t basis_idx,
 				 std::vector<uint8_t>& term_states,
 				 std::vector<uint8_t>& pair_states,
 				 std::vector<uint8_t>& basis_states) {
@@ -1780,11 +1781,8 @@ UpdateResult update_basis_states(uint64_t i, uint64_t j, uint64_t k,
   uint8_t &pair_jk = pair_states[jk_idx];
   uint8_t pair_jk_orig = pair_jk;
     
-  // Get basis index
-  uint64_t ijk_idx = pair3d(i, j, k);
-    
   // Save original basis state
-  uint8_t &basis_ijk = basis_states[ijk_idx];
+  uint8_t &basis_ijk = basis_states[basis_idx];
   uint8_t basis_ijk_orig = basis_ijk;
 
   // update the pairs and basis from the terms
@@ -1874,108 +1872,6 @@ UpdateResult update_basis_states(uint64_t i, uint64_t j, uint64_t k,
     return UpdateResult(true, false);
   }
   return UpdateResult(false, false);
-}
-
-bool check_482(std::vector<uint8_t>& term_states,
-	       std::vector<uint8_t>& pair_states,
-	       std::vector<uint8_t>& basis_states) {
-  uint8_t term_i = term_states[6];
-  uint8_t term_j = term_states[7];
-  uint8_t term_k = term_states[15];
-    
-  // Get pair indices
-  uint64_t ij_idx = 27;
-  uint64_t ik_idx = 111;
-  uint64_t jk_idx = 112;
-    
-  // Save original pair states
-  uint8_t pair_ij = pair_states[ij_idx];
-  uint8_t pair_ik = pair_states[ik_idx];
-  uint8_t pair_jk = pair_states[jk_idx];
-    
-  // Get basis index
-  uint64_t ijk_idx = 482;
-    
-  // Save original basis state
-  uint8_t basis_ijk = basis_states[ijk_idx];
-  // update the pairs and basis from the terms
-  switch (term_i) {
-  case 0:
-    // UNSAT
-    return true;
-    break;
-  case CLEAR_POS:
-    pair_ij &= CLEAR_POS_ANY;
-    pair_ik &= CLEAR_POS_ANY;
-    basis_ijk &= CLEAR_POS_ANY_ANY;
-    break;
-  case CLEAR_NEG:
-    pair_ij &= CLEAR_NEG_ANY;
-    pair_ik &= CLEAR_NEG_ANY;
-    basis_ijk &= CLEAR_NEG_ANY_ANY;
-    break;
-  }
-
-  switch(term_j) {
-  case 0:
-    // UNSAT
-    return true;
-    break;
-  case CLEAR_POS:
-    pair_ij &= CLEAR_ANY_POS;
-    pair_jk &= CLEAR_POS_ANY;
-    basis_ijk &= CLEAR_ANY_POS_ANY;
-    break;
-  case CLEAR_NEG:
-    pair_ij &= CLEAR_ANY_NEG;
-    pair_jk &= CLEAR_NEG_ANY;
-    basis_ijk &= CLEAR_ANY_NEG_ANY;
-    break;
-  }
-  
-  switch(term_k) {
-  case 0:
-    // UNSAT
-    return true;
-    break;
-  case CLEAR_POS:
-    pair_ik &= CLEAR_ANY_POS;
-    pair_jk &= CLEAR_ANY_POS;
-    basis_ijk &= CLEAR_ANY_ANY_POS;
-    break;
-  case CLEAR_NEG:
-    pair_ik &= CLEAR_ANY_NEG;
-    pair_jk &= CLEAR_ANY_NEG;
-    basis_ijk &= CLEAR_ANY_ANY_NEG;
-    break;
-  }
-  
-  // update basis from the pairs
-  basis_ijk &= ij_basis_clear_masks[pair_ij];
-  basis_ijk &= ik_basis_clear_masks[pair_ik];
-  basis_ijk &= jk_basis_clear_masks[pair_jk];
-
-  // update pairs and terms from the basis
-  const uint8_t *bpt_clear_masks =
-    basis_to_pair_and_term_clear_masks[basis_ijk];
-  pair_ij &= bpt_clear_masks[0];
-  pair_ik &= bpt_clear_masks[1];
-  pair_jk &= bpt_clear_masks[2];
-  term_i  &= bpt_clear_masks[3];
-  term_j  &= bpt_clear_masks[4];
-  term_k  &= bpt_clear_masks[5];
-
-  if((!basis_ijk) ||
-     (!pair_ij)   ||
-     (!pair_ik)   ||
-     (!pair_jk)   ||
-     (!term_i)    ||
-     (!term_j)    ||
-     (!term_k)) {
-    // UNSAT
-    return true;
-  }
-  return false;
 }
 
 // First, define a fixed-size container for intermediary bases
@@ -2113,6 +2009,7 @@ UpdateResult ensure_basis_consistency
 
   // First update each basis individually
   UpdateResult result = update_basis_states(i1, j1, k1,
+					    basis1_idx,
 					    term_states,
 					    pair_states,
 					    basis_states);
@@ -2122,6 +2019,7 @@ UpdateResult ensure_basis_consistency
   }
   // make basis2 consistent with basis1
   UpdateResult basis2_result = update_basis_states(i2, j2, k2,
+						   basis2_idx,
 						   term_states,
 						   pair_states,
 						   basis_states);
@@ -2132,6 +2030,7 @@ UpdateResult ensure_basis_consistency
 
   // make basis1 consistent with basis2
   result = update_basis_states(i1, j1, k1,
+			       basis1_idx,
 			       term_states,
 			       pair_states,
 			       basis_states);
@@ -2163,6 +2062,7 @@ UpdateResult ensure_basis_consistency
 	update_basis_states(intermediaries[idx].i,
 			    intermediaries[idx].j,
 			    intermediaries[idx].k,
+			    intermediaries[idx].basis_idx,
 			    term_states,
 			    pair_states,
 			    basis_states);
@@ -2319,131 +2219,41 @@ UpdateResult ensure_basis_consistency
   return result;
 }
 
-void ensure_global_consistency(uint64_t n,
-			       std::vector<uint8_t>& term_states,
+void ensure_global_consistency(std::vector<uint8_t>& term_states,
 			       std::vector<uint8_t>& pair_states,
 			       std::vector<uint8_t>& basis_states,
 			       bool& has_contradiction,
-			       uint64_t starting_position,
-			       uint64_t max_i,
-			       uint64_t max_j,
-			       uint64_t max_k) {
+			       uint64_t starting_basis_pair,
+			       uint64_t ending_basis_pair) {
   has_contradiction = false;
   bool changed = true;
 
-  uint64_t i1,j1,k1;
-
-  std::tie(i1,j1,k1) = unpair3d(starting_position);
-
-  uint64_t initial_i1 = i1;
-  uint64_t initial_j1 = j1;
-  uint64_t initial_k1 = k1;
-
-  // Apply bounds if provided
-  max_i = (max_i == UINT64_MAX) ? n - 2 : std::min(max_i, n - 2);
-  max_j = (max_j == UINT64_MAX) ? n - 1 : std::min(max_j, n - 1);
-  max_k = (max_k == UINT64_MAX) ? n : std::min(max_k, n);
-  uint64_t end_position = pair3d(max_i,max_j,max_k);
-  
-    
   while (changed) {
     changed = false;
-    i1 = initial_i1;
-    j1 = initial_j1;
-    k1 = initial_k1;
-    goto start;
-    // Iterate through all possible basis pairs using direct variable
-    // loops
-    for (i1 = initial_i1;i1 < n - 2; ++i1) {
-      for (j1 = i1 + 1 ;j1 < n - 1; ++j1) {
-	for (k1 = j1 + 1;k1 < n; ++k1) {
-	start:
-	  // This is our first basis triplet (i1,j1,k1)
-	  uint64_t basis1_idx = pair3d(i1, j1, k1);
-	  if(basis1_idx == end_position) {
-	    goto done;
-	  }
-	  // Now iterate through all basis triplets that come "after"
-	  // this one in the same order as the original nested loops
-	  // over indices 
-                    
-	  // First, all triplets that start with the same i1, j1
-	  for (uint64_t k2 = k1+1; k2 < n; ++k2) {
-	    // Check consistency between (i1,j1,k1) and (i1,j1,k2)
-	    uint64_t basis2_idx = pair3d(i1, j1, k2);
-	    auto result =
-	      ensure_basis_consistency(i1, j1, k1, i1, j1, k2,
-				       basis1_idx,
-				       basis2_idx,
-				       term_states,
-				       pair_states,
-				       basis_states);
+    for(uint64_t basis_pair = starting_basis_pair;
+	basis_pair < ending_basis_pair;
+	++basis_pair) {
+      uint64_t basis1_idx,basis2_idx;
+      std::tie(basis1_idx,basis2_idx) = unpair2d(basis_pair);
+      uint64_t i1,j1,k1,i2,j2,k2;
+      std::tie(i1,j1,k1) = unpair3d(basis1_idx);
+      std::tie(i2,j2,k2) = unpair3d(basis2_idx);
+      auto result =
+	ensure_basis_consistency(i1, j1, k1, i2, j2, k2,
+				 basis1_idx,
+				 basis2_idx,
+				 term_states,
+				 pair_states,
+				 basis_states);
+      if (result.has_zero) {
+	has_contradiction = true;
+	return;
+      }
                         
-	    if (result.has_zero) {
-	      has_contradiction = true;
-	      return;
-	    }
-                        
-	    if (result.changed) {
-	      changed = true;
-	    }
-	  }
-                    
-	  // Next, all triplets that start with i1 but have j2 > j1
-	  for (uint64_t j2 = j1+1; j2 < n-1; ++j2) {
-	    for (uint64_t k2 = j2+1; k2 < n; ++k2) {
-	      // Check consistency between (i1,j1,k1) and (i1,j2,k2)
-	      uint64_t basis2_idx = pair3d(i1, j2, k2);
-	      auto result =
-		ensure_basis_consistency(i1, j1, k1, i1, j2, k2,
-					 basis1_idx,
-					 basis2_idx,
-					 term_states,
-					 pair_states,
-					 basis_states);
-                            
-	      if (result.has_zero) {
-		has_contradiction = true;
-		return;
-	      }
-                            
-	      if (result.changed) {
-		changed = true;
-	      }
-	    }
-	  }
-                    
-	  // Finally, all triplets with i2 > i1
-	  for (uint64_t i2 = i1+1; i2 < n-2; ++i2) {
-	    for (uint64_t j2 = i2+1; j2 < n-1; ++j2) {
-	      for (uint64_t k2 = j2+1; k2 < n; ++k2) {
-		// Check consistency between (i1,j1,k1) and (i2,j2,k2)
-		uint64_t basis2_idx = pair3d(i2, j2, k2);
-		auto result =
-		  ensure_basis_consistency(i1, j1, k1, i2, j2, k2,
-					   basis1_idx,
-					   basis2_idx,
-					   term_states,
-					   pair_states,
-					   basis_states);
-                                
-		if (result.has_zero) {
-		  has_contradiction = true;
-		  return;
-		}
-                                
-		if (result.changed) {
-		  changed = true;
-		}
-	      }
-	    }
-	  }
-	}
+      if (result.changed) {
+	changed = true;
       }
     }
-  done:;
   }
-    
   return;
-}
-
+}  

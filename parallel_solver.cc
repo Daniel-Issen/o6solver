@@ -30,101 +30,25 @@
 // Function to divide work among workers
 std::vector<WorkSegment> divide_work(uint64_t n, int num_workers) {
   std::vector<WorkSegment> segments;
-    
-  // Calculate total number of bases for logging
-  uint64_t total_bases = calculate_array_size_3d(n);
-  std::cout << "Total basis triplets: " << total_bases << std::endl;
-    
-  // Use a balanced division strategy - divide the total basis count evenly
-  uint64_t bases_per_worker = (total_bases + num_workers - 1) / num_workers;
-  std::cout << "Bases per worker (target): " << bases_per_worker << std::endl;
-    
+
+  uint64_t num_basis_pairs =
+    calculate_array_size_2d(calculate_array_size_3d(n));
+  uint64_t basis_pairs_per_worker = num_basis_pairs / num_workers;
   uint64_t current_position = 0;
-    
-  for (int worker = 0; worker < num_workers; worker++) {
+  for(int worker = 0; worker < num_workers; ++worker) {
     WorkSegment segment;
-    segment.start_position = current_position;
-        
-    // Calculate end position for this worker
-    uint64_t end_position =
-      std::min(current_position + bases_per_worker, total_bases);
-        
-    // Convert positions to (i,j,k) coordinates for debugging
-    uint64_t start_i, start_j, start_k;
-    uint64_t end_i, end_j, end_k;
-        
-    if (current_position < total_bases) {
-      std::tie(start_i, start_j, start_k) = unpair3d(current_position);
-    } else {
-      // This worker gets no work
-      start_i = start_j = start_k = 0;
-    }
-        
-    if (end_position > 0 && end_position <= total_bases) {
-      std::tie(end_i, end_j, end_k) = unpair3d(end_position - 1);
-    } else {
-      end_i = n - 2;
-      end_j = n - 1;
-      end_k = n;
-    }
-        
-    // Make sure the last worker gets all remaining work
-    if (worker == num_workers - 1) {
-      end_i = n - 2;
-      end_j = n - 1;
-      end_k = n;
-    }
-        
-    segment.max_i = end_i;
-    segment.max_j = end_j;
-    segment.max_k = end_k;
-        
-    // Update current position for next worker
-    current_position = end_position;
-        
-    // Log worker assignments for debugging
-    std::cout << "Worker " << worker << ": "
-	      << "Start pos: " << segment.start_position << " "
-	      << "(" << start_i << "," << start_j << "," << start_k << ") -> "
-	      << "Max: (" << segment.max_i << "," << segment.max_j << ","
-	      << segment.max_k << ") " << "Bases: "
-	      << (end_position - segment.start_position) << std::endl;
-        
+    segment.starting_basis_pair = current_position;
+    segment.ending_basis_pair = current_position + basis_pairs_per_worker;
+    current_position += basis_pairs_per_worker;
     segments.push_back(segment);
   }
-    
+  // put any remaining in the last segment
+  segments[num_workers - 1].ending_basis_pair = num_basis_pairs;
   return segments;
 }
 
-// Worker function that processes a segment
-WorkerResult process_segment(const WorkSegment& segment,
-			     uint64_t n,
-			     const std::vector<uint8_t>& term_states,
-			     const std::vector<uint8_t>& pair_states,
-			     const std::vector<uint8_t>& basis_states) {
-    
-  WorkerResult result;
-  result.term_states = term_states;
-  result.pair_states = pair_states;
-  result.basis_states = basis_states;
-  result.has_contradiction = false;
-    
-  // Process this segment
-  ensure_global_consistency(n,
-			    result.term_states,
-			    result.pair_states,
-			    result.basis_states,
-			    result.has_contradiction,
-			    segment.start_position,
-			    segment.max_i,
-			    segment.max_j,
-			    segment.max_k);
-  return result;
-}
-
 // Function to merge worker results
-bool merge_worker_results(
-			  std::vector<WorkerResult>& worker_results,
+bool merge_worker_results(std::vector<WorkerResult>& worker_results,
 			  std::vector<uint8_t>& term_states,
 			  std::vector<uint8_t>& pair_states,
 			  std::vector<uint8_t>& basis_states,
@@ -187,6 +111,28 @@ bool merge_worker_results(
   return changed;
 }
 
+// Worker function that processes a segment
+WorkerResult process_segment(const WorkSegment& segment,
+			     const std::vector<uint8_t>& term_states,
+			     const std::vector<uint8_t>& pair_states,
+			     const std::vector<uint8_t>& basis_states) {
+    
+  WorkerResult result;
+  result.term_states = term_states;
+  result.pair_states = pair_states;
+  result.basis_states = basis_states;
+  result.has_contradiction = false;
+    
+  // Process this segment
+  ensure_global_consistency(result.term_states,
+			    result.pair_states,
+			    result.basis_states,
+			    result.has_contradiction,
+			    segment.starting_basis_pair,
+			    segment.ending_basis_pair);
+  return result;
+}
+
 // Main parallel solver function
 bool parallel_check_satisfiability
 (const std::vector<std::vector<Literal>>& cnf_clauses,
@@ -215,13 +161,11 @@ bool parallel_check_satisfiability
     
   // Apply constraints directly
   int working_num_vars = num_vars;
-  bool initial_consistency = apply_constraints(
-					       cnf_clauses, 
+  bool initial_consistency = apply_constraints(cnf_clauses, 
 					       working_num_vars, 
 					       term_states, 
 					       pair_states, 
-					       basis_states
-					       );
+					       basis_states);
     
   if (!initial_consistency) {
     std::cout << "Formula is unsatisfiable (detected during initial constraint application)" << std::endl;
@@ -248,7 +192,6 @@ bool parallel_check_satisfiability
       futures.push_back(std::async(std::launch::async, 
 				   process_segment, 
 				   segment, 
-				   working_num_vars, 
 				   term_states, 
 				   pair_states, 
 				   basis_states));
@@ -291,13 +234,10 @@ bool parallel_check_satisfiability
     
   // If we want to find a solution and no contradiction was detected
   if (find_solution) {
-    SATSolution solution = determine_solution(
-					      basis_states, 
+    SATSolution solution = determine_solution(basis_states, 
 					      pair_states,
 					      term_states,
-					      num_vars
-					      );
-        
+					      num_vars);
     // Print the solution to console
     print_solution(solution);
         
@@ -314,3 +254,4 @@ bool parallel_check_satisfiability
   // If no contradiction was found, the formula is satisfiable
   return true;
 }
+
