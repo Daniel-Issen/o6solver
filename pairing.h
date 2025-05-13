@@ -30,18 +30,20 @@
 #include <tuple>
 #include <cstdint>
 
+typedef __uint128_t Index;
+
 // Maps (i,j) where i < j to a unique index
-uint64_t pair2d(uint64_t i, uint64_t j);
+Index pair2d(Index i, Index j);
 
 // Maps index back to (i,j) where i < j
-std::tuple<uint64_t, uint64_t> unpair2d(uint64_t index);
+std::tuple<Index, Index> unpair2d(Index index);
 
 // Maps (i,j,k) where i < j < k to a unique index
-uint64_t pair3d(uint64_t i, uint64_t j, uint64_t k);
+Index pair3d(Index i, Index j, Index k);
 
 // Maps index back to (i,j,k) where i < j < k
-std::tuple<uint64_t, uint64_t, uint64_t> unpair3d(uint64_t index);
+std::tuple<Index, Index, Index> unpair3d(Index index);
 
 // Helper functions to calculate total array sizes
-uint64_t calculate_array_size_2d(uint64_t n); // N Choose 2
-uint64_t calculate_array_size_3d(uint64_t n); // N Choose 3
+Index calculate_array_size_2d(Index n); // N Choose 2
+Index calculate_array_size_3d(Index n); // N Choose 3

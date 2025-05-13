@@ -25,6 +25,7 @@
 #include <vector>
 #include <tuple>
 #include "constants.h"
+#include "pairing.h"
 
 // Result structure for state updates
 struct UpdateResult {
@@ -43,20 +44,20 @@ std::string pair_state_str(uint8_t state);
 std::string basis_state_str(uint8_t state);
 
 // update pair and term states to maintain consistency
-UpdateResult update_pair_states(uint64_t i, uint64_t j,
+UpdateResult update_pair_states(Index i, Index j,
 				std::vector<uint8_t>& term_states,
 				std::vector<uint8_t>& pair_states);
 
 // Update basis, pair, and term states to maintain consistency
 // Returns detailed result about what happened during update
-UpdateResult update_basis_states(uint64_t i, uint64_t j, uint64_t k,
-				 uint64_t basis_idx,
+UpdateResult update_basis_states(Index i, Index j, Index k,
+				 Index basis_idx,
 				 std::vector<uint8_t>& term_states,
 				 std::vector<uint8_t>& pair_states,
 				 std::vector<uint8_t>& basis_states);
 
 UpdateResult ensure_basis_consistency(
-    uint64_t basis1_idx, uint64_t basis2_idx, 
+    Index basis1_idx, Index basis2_idx, 
     std::vector<uint8_t>& term_states,
     std::vector<uint8_t>& pair_states,
     std::vector<uint8_t>& basis_states);
@@ -66,16 +67,16 @@ bool ensure_global_consistency(std::vector<uint8_t>& term_states,
 			       std::vector<uint8_t>& pair_states,
 			       std::vector<uint8_t>& basis_states,
 			       bool& has_contradiction,
-			       uint64_t starting_basis_pair,
-			       uint64_t ending_basis_pair);
+			       Index starting_basis_pair,
+			       Index ending_basis_pair);
 
 bool parallel_ensure_global_consistency
 (std::vector<uint8_t>& term_states,
  std::vector<uint8_t>& pair_states,
  std::vector<uint8_t>& basis_states,
  bool& has_contradiction,
- uint64_t starting_basis_pair,
- uint64_t ending_basis_pair,
+ Index starting_basis_pair,
+ Index ending_basis_pair,
  int num_workers);
 
 

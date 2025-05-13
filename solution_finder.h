@@ -42,7 +42,7 @@ bool validate_solution(const SATSolution& solution,
 SATSolution determine_solution(std::vector<uint8_t>& basis_states,
 			       std::vector<uint8_t>& pair_states,
 			       std::vector<uint8_t>& term_states,
-			       uint64_t n,
+			       Index n,
 			       int num_workers);
 
 // Helper function to save solution to a file

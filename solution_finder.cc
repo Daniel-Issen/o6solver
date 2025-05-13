@@ -24,7 +24,6 @@
 #include "basis_consistency.h"
 #include "pairing.h"
 #include "constants.h"
-#include "parallel_solver.h"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -86,22 +85,22 @@ SATSolution determine_solution
 (std::vector<uint8_t>& basis_states,
  std::vector<uint8_t>& pair_states,
  std::vector<uint8_t>& term_states,
- uint64_t n,
+ Index n,
  int num_workers) {
 
   std::cout << "Attempting to determine a solution..." << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
     
-  uint64_t i = 0;
-  uint64_t j = i + 1;
-  uint64_t k = j + 1;
+  Index i = 0;
+  Index j = i + 1;
+  Index k = j + 1;
   
   // set three terms at a time
-  uint64_t starting_position = 0;
+  Index starting_position = 0;
   for(i = 0; i < term_states.size() - 3; i += 3) {
     j = i + 1;
     k = j + 1;
-    uint64_t basis_idx = pair3d(i,j,k);
+    Index basis_idx = pair3d(i,j,k);
     uint8_t current_state = basis_states[basis_idx];
     // if the basis is either already fixed or trivially fixed,
     // continue to the next.
@@ -122,10 +121,10 @@ SATSolution determine_solution
     bool changed = false;
     do {
       changed = false;
-      for(uint64_t basis_index = starting_position;
+      for(Index basis_index = starting_position;
 	  basis_index < basis_states.size();
 	  ++basis_index) {
-	std::tuple<uint64_t,uint64_t,uint64_t> ijk = unpair3d(basis_index);
+	std::tuple<Index,Index,Index> ijk = unpair3d(basis_index);
 	UpdateResult result =
 	  update_basis_states(std::get<0>(ijk),
 			      std::get<1>(ijk),
@@ -140,9 +139,9 @@ SATSolution determine_solution
       }
     } while(changed);
 
-    uint64_t starting_basis_pair =
+    Index starting_basis_pair =
       pair2d(starting_position,starting_position + 1);
-    uint64_t ending_basis_pair =
+    Index ending_basis_pair =
       calculate_array_size_2d(calculate_array_size_3d(n));
     bool has_contradiction = false;
     if(num_workers < 2) {
@@ -170,7 +169,7 @@ SATSolution determine_solution
   if(j < term_states.size()) { // two terms unset
     // update the pair based on its terms
     update_pair_states(i,j,term_states,pair_states);
-    uint64_t pair_idx = pair2d(i,j);
+    Index pair_idx = pair2d(i,j);
     uint8_t current_state = pair_states[pair_idx];
     if(!current_state) {
       std::cout << "this shouldn't happen" << std::endl;
@@ -188,7 +187,7 @@ SATSolution determine_solution
     }
   }
   // Extract the solution from term_states
-  for (uint64_t i = 0; i < n; i++) {
+  for (Index i = 0; i < n; i++) {
     uint8_t state = term_states[i];
         
     if (state == SET_NEG) {

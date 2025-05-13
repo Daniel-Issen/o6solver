@@ -1677,7 +1677,7 @@ std::string basis_state_str(uint8_t state) {
 
 // propagate term states to pairs then propage the pair
 // state back down to the terms.
-UpdateResult update_pair_states(uint64_t i, uint64_t j,
+UpdateResult update_pair_states(Index i, Index j,
 				std::vector<uint8_t>& term_states,
 				std::vector<uint8_t>& pair_states) {
   // Save original states to detect changes
@@ -1688,7 +1688,7 @@ UpdateResult update_pair_states(uint64_t i, uint64_t j,
   uint8_t term_j_orig = term_j;
 
   // Get pair indices
-  uint64_t ij_idx = pair2d(i, j);
+  Index ij_idx = pair2d(i, j);
     
   // Save original pair states
   uint8_t &pair_ij = pair_states[ij_idx];
@@ -1753,8 +1753,8 @@ UpdateResult update_pair_states(uint64_t i, uint64_t j,
 
 // propagate term states to pairs to a basis then propage the basis
 // state back down to the pairs and terms.
-UpdateResult update_basis_states(uint64_t i, uint64_t j, uint64_t k,
-				 uint64_t basis_idx,
+UpdateResult update_basis_states(Index i, Index j, Index k,
+				 Index basis_idx,
 				 std::vector<uint8_t>& term_states,
 				 std::vector<uint8_t>& pair_states,
 				 std::vector<uint8_t>& basis_states) {
@@ -1769,9 +1769,9 @@ UpdateResult update_basis_states(uint64_t i, uint64_t j, uint64_t k,
   uint8_t term_k_orig = term_k;
     
   // Get pair indices
-  uint64_t ij_idx = pair2d(i, j);
-  uint64_t ik_idx = pair2d(i, k);
-  uint64_t jk_idx = pair2d(j, k);
+  Index ij_idx = pair2d(i, j);
+  Index ik_idx = pair2d(i, k);
+  Index jk_idx = pair2d(j, k);
     
   // Save original pair states
   uint8_t &pair_ij = pair_states[ij_idx];
@@ -1878,10 +1878,10 @@ UpdateResult update_basis_states(uint64_t i, uint64_t j, uint64_t k,
 
 // First, define a fixed-size container for intermediary bases
 struct IntermediaryBasis {
-  uint64_t basis_idx;
-  uint64_t i;
-  uint64_t j;
-  uint64_t k;
+  Index basis_idx;
+  Index i;
+  Index j;
+  Index k;
   unsigned int offset1, offset2, offset3;
   uint8_t state;
 };
@@ -1903,13 +1903,13 @@ constexpr size_t MAX_INTERMEDIARY_BASES = 18;
 // basis1, basis2, and all the other representative intermediary
 // bases, the global state is made consistent by calling
 // update_basis_states on (a,b,c).
-void generate_intermediaries(const uint64_t* b1_array,
-			     const uint64_t* b2_array,
+void generate_intermediaries(const Index* b1_array,
+			     const Index* b2_array,
 			     IntermediaryBasis* intermediaries,
 			     size_t* num_intermediaries) {
     
   // Merged array of terms and their offsets
-  uint64_t all_terms[6];
+  Index all_terms[6];
   unsigned int all_offsets[6];
   size_t term_count = 0;
     
@@ -1951,8 +1951,8 @@ void generate_intermediaries(const uint64_t* b1_array,
   }
     
   // Create indices for basis1 and basis2 to filter them out later
-  uint64_t basis1_idx = pair3d(b1_array[0], b1_array[1], b1_array[2]);
-  uint64_t basis2_idx = pair3d(b2_array[0], b2_array[1], b2_array[2]);
+  Index basis1_idx = pair3d(b1_array[0], b1_array[1], b1_array[2]);
+  Index basis2_idx = pair3d(b2_array[0], b2_array[1], b2_array[2]);
     
   // Reset counter
   *num_intermediaries = 0;
@@ -1971,7 +1971,7 @@ void generate_intermediaries(const uint64_t* b1_array,
 	    (*num_intermediaries < MAX_INTERMEDIARY_BASES));
 	   k++) {
 	// Create basis index
-	uint64_t basis_idx =
+	Index basis_idx =
 	  pair3d(all_terms[i], all_terms[j], all_terms[k]);
                 
 	// Skip if this is one of the original bases
@@ -1997,14 +1997,14 @@ void generate_intermediaries(const uint64_t* b1_array,
 }
 
 UpdateResult ensure_basis_consistency
-(uint64_t i1,
- uint64_t j1,
- uint64_t k1,
- uint64_t i2,
- uint64_t j2,
- uint64_t k2,
- uint64_t basis1_idx,
- uint64_t basis2_idx,
+(Index i1,
+ Index j1,
+ Index k1,
+ Index i2,
+ Index j2,
+ Index k2,
+ Index basis1_idx,
+ Index basis2_idx,
  std::vector<uint8_t>& term_states,
  std::vector<uint8_t>& pair_states,
  std::vector<uint8_t>& basis_states) {
@@ -2041,8 +2041,8 @@ UpdateResult ensure_basis_consistency
   }
     
   // Setup for intermediary generation
-  uint64_t b1_array[] = {i1, j1, k1};
-  uint64_t b2_array[] = {i2, j2, k2};
+  Index b1_array[] = {i1, j1, k1};
+  Index b2_array[] = {i2, j2, k2};
     
   // Use stack-allocated array for intermediaries
   IntermediaryBasis intermediaries[MAX_INTERMEDIARY_BASES];
@@ -2082,12 +2082,12 @@ UpdateResult ensure_basis_consistency
   uint8_t new_basis2_state = 0;
     
   // Pre-compute pair indices to avoid recalculation
-  uint64_t ij1_idx = pair2d(i1, j1);
-  uint64_t ik1_idx = pair2d(i1, k1);
-  uint64_t jk1_idx = pair2d(j1, k1);
-  uint64_t ij2_idx = pair2d(i2, j2);
-  uint64_t ik2_idx = pair2d(i2, k2);
-  uint64_t jk2_idx = pair2d(j2, k2);
+  Index ij1_idx = pair2d(i1, j1);
+  Index ik1_idx = pair2d(i1, k1);
+  Index jk1_idx = pair2d(j1, k1);
+  Index ij2_idx = pair2d(i2, j2);
+  Index ik2_idx = pair2d(i2, k2);
+  Index jk2_idx = pair2d(j2, k2);
 
   // Fixed-size array for intermediary proposals
   uint8_t intermediary_proposals[MAX_INTERMEDIARY_BASES] = {0};
@@ -2136,7 +2136,7 @@ UpdateResult ensure_basis_consistency
       // intermediaries
       bool consistent = true;
       for (size_t i = 0; i < num_intermediaries; i++) {
-	uint64_t inter_idx = intermediaries[i].basis_idx;
+	Index inter_idx = intermediaries[i].basis_idx;
 	if (!(basis_states[inter_idx] & intermediary_proposals[i])) {
 	  consistent = false;
 	  break;
@@ -2225,19 +2225,19 @@ bool ensure_global_consistency(std::vector<uint8_t>& term_states,
 			       std::vector<uint8_t>& pair_states,
 			       std::vector<uint8_t>& basis_states,
 			       bool& has_contradiction,
-			       uint64_t starting_basis_pair,
-			       uint64_t ending_basis_pair) {
+			       Index starting_basis_pair,
+			       Index ending_basis_pair) {
   has_contradiction = false;
   bool changed = true;
   bool globally_changed = false;
   while (changed) {
     changed = false;
-    for(uint64_t basis_pair = starting_basis_pair;
+    for(Index basis_pair = starting_basis_pair;
 	basis_pair < ending_basis_pair;
 	++basis_pair) {
-      uint64_t basis1_idx,basis2_idx;
+      Index basis1_idx,basis2_idx;
       std::tie(basis1_idx,basis2_idx) = unpair2d(basis_pair);
-      uint64_t i1,j1,k1,i2,j2,k2;
+      Index i1,j1,k1,i2,j2,k2;
       std::tie(i1,j1,k1) = unpair3d(basis1_idx);
       std::tie(i2,j2,k2) = unpair3d(basis2_idx);
       auto result =
@@ -2263,13 +2263,13 @@ bool ensure_global_consistency(std::vector<uint8_t>& term_states,
 
 // Structure to hold work segment boundaries
 struct WorkSegment {
-  uint64_t starting_basis_pair;
-  uint64_t ending_basis_pair;
+  Index starting_basis_pair;
+  Index ending_basis_pair;
 };
 
 // Structure to hold worker results
 struct WorkerResult {
-  uint64_t updates;
+  Index updates;
   bool has_contradiction;
   bool has_changed;
   std::vector<uint8_t> term_states;
@@ -2278,13 +2278,13 @@ struct WorkerResult {
 };
 
 // Function to divide work among workers
-std::vector<WorkSegment> divide_work(uint64_t n, int num_workers) {
+std::vector<WorkSegment> divide_work(Index n, int num_workers) {
   std::vector<WorkSegment> segments;
 
-  uint64_t num_basis_pairs =
+  Index num_basis_pairs =
     calculate_array_size_2d(calculate_array_size_3d(n));
-  uint64_t basis_pairs_per_worker = num_basis_pairs / num_workers;
-  uint64_t current_position = 0;
+  Index basis_pairs_per_worker = num_basis_pairs / num_workers;
+  Index current_position = 0;
   for(int worker = 0; worker < num_workers; ++worker) {
     WorkSegment segment;
     segment.starting_basis_pair = current_position;
@@ -2389,8 +2389,8 @@ bool parallel_ensure_global_consistency
  std::vector<uint8_t>& pair_states,
  std::vector<uint8_t>& basis_states,
  bool& has_contradiction,
- uint64_t starting_basis_pair,
- uint64_t ending_basis_pair,
+ Index starting_basis_pair,
+ Index ending_basis_pair,
  int num_workers) {
   if(num_workers < 2) {
     // fallback to sequential solver if only one worker

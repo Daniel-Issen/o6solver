@@ -43,9 +43,9 @@
  * 
  * @param i First index (must be less than j)
  * @param j Second index (must be greater than i)
- * @return uint64_t A unique index for the pair
+ * @return Index A unique index for the pair
  */
-uint64_t pair2d(uint64_t i, uint64_t j) {
+Index pair2d(Index i, Index j) {
     return (j * (j - 1)) / 2 + i;
 }
 
@@ -64,16 +64,16 @@ uint64_t pair2d(uint64_t i, uint64_t j) {
  * 2. Once j is found, compute i = index - (j * (j - 1)) / 2
  * 
  * @param index The flat array index to convert back to a pair
- * @return std::tuple<uint64_t, uint64_t> The original (i,j) pair
+ * @return std::tuple<Index, Index> The original (i,j) pair
  */
-std::tuple<uint64_t, uint64_t> unpair2d(uint64_t index) {
+std::tuple<Index, Index> unpair2d(Index index) {
     // Compute discriminant for the quadratic formula
     double discriminant = 1.0 + 8.0 * index;
     
     // Use the quadratic formula to get an approximation of j
     // j ≈ (1 + √(1 + 8*index)) / 2
     double j_approx = (1.0 + std::sqrt(discriminant)) / 2.0;
-    uint64_t j = static_cast<uint64_t>(j_approx);
+    Index j = static_cast<Index>(j_approx);
     
     // Refine the estimate of j to ensure it's correct
     // Adjust j downward if needed
@@ -83,7 +83,7 @@ std::tuple<uint64_t, uint64_t> unpair2d(uint64_t index) {
     while ((j + 1) * j / 2 <= index) j++;
     
     // Calculate i using the relationship index = (j * (j - 1)) / 2 + i
-    uint64_t i = index - (j * (j - 1)) / 2;
+    Index i = index - (j * (j - 1)) / 2;
     
     return std::make_tuple(i, j);
 }
@@ -104,9 +104,9 @@ std::tuple<uint64_t, uint64_t> unpair2d(uint64_t index) {
  * @param i First index (must be less than j)
  * @param j Second index (must be between i and k)
  * @param k Third index (must be greater than j)
- * @return uint64_t A unique index for the triplet
+ * @return Index A unique index for the triplet
  */
-uint64_t pair3d(uint64_t i, uint64_t j, uint64_t k) {
+Index pair3d(Index i, Index j, Index k) {
     return (k * (k - 1) * (k - 2)) / 6 + (j * (j - 1)) / 2 + i;
 }
 
@@ -126,13 +126,13 @@ uint64_t pair3d(uint64_t i, uint64_t j, uint64_t k) {
  * 3. Use unpair2d's logic to recover j and i from the remaining index
  * 
  * @param index The flat array index to convert back to a triplet
- * @return std::tuple<uint64_t, uint64_t, uint64_t> The original (i,j,k) triplet
+ * @return std::tuple<Index, Index, Index> The original (i,j,k) triplet
  */
-std::tuple<uint64_t, uint64_t, uint64_t> unpair3d(uint64_t index) {
+std::tuple<Index, Index, Index> unpair3d(Index index) {
     // Approximate k using the cube root formula
     // This is an approximation for solving (k * (k - 1) * (k - 2)) / 6 = index
     double k_approx = std::cbrt(6.0 * index);
-    uint64_t k = static_cast<uint64_t>(k_approx);
+    Index k = static_cast<Index>(k_approx);
     
     // Refine the estimate of k to ensure it's correct
     // Adjust k downward if needed
@@ -142,19 +142,19 @@ std::tuple<uint64_t, uint64_t, uint64_t> unpair3d(uint64_t index) {
     while ((k + 1) * k * (k - 1) / 6 <= index) k++;
     
     // Calculate the remaining index after removing k's contribution
-    uint64_t remaining = index - (k * (k - 1) * (k - 2)) / 6;
+    Index remaining = index - (k * (k - 1) * (k - 2)) / 6;
     
     // Use the same approach as unpair2d to recover j and i
     double discriminant = 1.0 + 8.0 * remaining;
     double j_approx = (1.0 + std::sqrt(discriminant)) / 2.0;
-    uint64_t j = static_cast<uint64_t>(j_approx);
+    Index j = static_cast<Index>(j_approx);
     
     // Refine the estimate of j
     while ((j * (j - 1)) / 2 > remaining) j--;
     while ((j + 1) * j / 2 <= remaining) j++;
     
     // Calculate i using the relationship remaining = (j * (j - 1)) / 2 + i
-    uint64_t i = remaining - (j * (j - 1)) / 2;
+    Index i = remaining - (j * (j - 1)) / 2;
     
     return std::make_tuple(i, j, k);
 }
@@ -171,9 +171,9 @@ std::tuple<uint64_t, uint64_t, uint64_t> unpair3d(uint64_t index) {
  * the pair_states array in the 3SAT solver algorithm.
  * 
  * @param n The upper bound (exclusive) for indices
- * @return uint64_t The number of unique pairs
+ * @return Index The number of unique pairs
  */
-uint64_t calculate_array_size_2d(uint64_t n) {
+Index calculate_array_size_2d(Index n) {
     return (n * (n - 1)) / 2;
 }
 
@@ -190,8 +190,8 @@ uint64_t calculate_array_size_2d(uint64_t n) {
  * the basis_states array in the 3SAT solver algorithm.
  * 
  * @param n The upper bound (exclusive) for indices
- * @return uint64_t The number of unique triplets
+ * @return Index The number of unique triplets
  */
-uint64_t calculate_array_size_3d(uint64_t n) {
+Index calculate_array_size_3d(Index n) {
     return (n * (n - 1) * (n - 2)) / 6;
 }

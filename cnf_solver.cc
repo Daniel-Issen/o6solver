@@ -25,7 +25,6 @@
 #include "pairing.h"
 #include "basis_consistency.h"
 #include "solution_finder.h"
-#include "parallel_solver.h"
 #include <chrono>
 #include <iostream>
 #include <algorithm>
@@ -39,7 +38,7 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
 		       std::vector<uint8_t>& term_states,
 		       std::vector<uint8_t>& pair_states,
 		       std::vector<uint8_t>& basis_states) {  
-  uint64_t max_var_id = num_vars;
+  Index max_var_id = num_vars;
   for(const auto& clause : cnf_clauses) {
     std::vector<Literal> sorted_clause = clause;
     auto comp = [](const Literal &a, const Literal &b) {
@@ -54,7 +53,7 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
 	return false;
       }
     } else if(sorted_clause.size() == 2) {
-      uint64_t idx = pair2d(sorted_clause[0].var -1,
+      Index idx = pair2d(sorted_clause[0].var -1,
 			    sorted_clause[1].var -1);
       pair_states[idx] &=
 	twod_clear_masks[sorted_clause[0].negated][sorted_clause[1].negated];
@@ -62,7 +61,7 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
 	return false;
       }
     } else if(sorted_clause.size() == 3) {
-      uint64_t idx = pair3d(sorted_clause[0].var -1,
+      Index idx = pair3d(sorted_clause[0].var -1,
 			    sorted_clause[1].var -1,
 			    sorted_clause[2].var -1);
       basis_states[idx] &=
@@ -90,7 +89,7 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
       basis_states.
 	resize(calculate_array_size_3d(term_states.size()),SET_ANY_ANY_ANY);
       // Handle first clause (a ∨ b ∨ z1)
-      uint64_t idx = pair3d(sorted_clause[0].var -1,
+      Index idx = pair3d(sorted_clause[0].var -1,
 			    sorted_clause[1].var -1,
 			    max_var_id);
       
@@ -104,7 +103,7 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
       
       // Handle intermediate clauses (¬z_i ∨ term ∨ z_{i+1})
       for (size_t i = 2; i < sorted_clause.size() - 2; i++) {
-        uint64_t prev_var_id = max_var_id - 1;
+        Index prev_var_id = max_var_id - 1;
         idx = pair3d(sorted_clause[i].var -1,
 		     prev_var_id,
 		     max_var_id);
@@ -117,7 +116,7 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
       }
       
       // Handle last clause ( -z_i v (last_term -1) v (last_term)
-      uint64_t prev_var_id = max_var_id - 1;
+      Index prev_var_id = max_var_id - 1;
       idx = pair3d(sorted_clause[sorted_clause.size() -2].var -1,
 		   sorted_clause[sorted_clause.size() -1].var -1,
 		   prev_var_id);
@@ -161,7 +160,7 @@ bool check_satisfiability
   }
   // Run global consistency check
   bool has_contradiction = false;
-  uint64_t ending_basis_pair =
+  Index ending_basis_pair =
     calculate_array_size_2d(calculate_array_size_3d(working_num_vars));
   auto start = std::chrono::high_resolution_clock::now();
   if(num_workers < 2) {
