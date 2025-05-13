@@ -27,6 +27,8 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <thread>
+#include <future>
 
 // lookup tables to eliminate conditional logic.
 
@@ -2219,7 +2221,7 @@ UpdateResult ensure_basis_consistency
   return result;
 }
 
-void ensure_global_consistency(std::vector<uint8_t>& term_states,
+bool ensure_global_consistency(std::vector<uint8_t>& term_states,
 			       std::vector<uint8_t>& pair_states,
 			       std::vector<uint8_t>& basis_states,
 			       bool& has_contradiction,
@@ -2227,7 +2229,7 @@ void ensure_global_consistency(std::vector<uint8_t>& term_states,
 			       uint64_t ending_basis_pair) {
   has_contradiction = false;
   bool changed = true;
-
+  bool globally_changed = false;
   while (changed) {
     changed = false;
     for(uint64_t basis_pair = starting_basis_pair;
@@ -2247,13 +2249,205 @@ void ensure_global_consistency(std::vector<uint8_t>& term_states,
 				 basis_states);
       if (result.has_zero) {
 	has_contradiction = true;
-	return;
+	return true;
       }
                         
       if (result.changed) {
 	changed = true;
+	globally_changed = true;
       }
     }
   }
-  return;
+  return globally_changed;
 }  
+
+// Structure to hold work segment boundaries
+struct WorkSegment {
+  uint64_t starting_basis_pair;
+  uint64_t ending_basis_pair;
+};
+
+// Structure to hold worker results
+struct WorkerResult {
+  uint64_t updates;
+  bool has_contradiction;
+  bool has_changed;
+  std::vector<uint8_t> term_states;
+  std::vector<uint8_t> pair_states;
+  std::vector<uint8_t> basis_states;
+};
+
+// Function to divide work among workers
+std::vector<WorkSegment> divide_work(uint64_t n, int num_workers) {
+  std::vector<WorkSegment> segments;
+
+  uint64_t num_basis_pairs =
+    calculate_array_size_2d(calculate_array_size_3d(n));
+  uint64_t basis_pairs_per_worker = num_basis_pairs / num_workers;
+  uint64_t current_position = 0;
+  for(int worker = 0; worker < num_workers; ++worker) {
+    WorkSegment segment;
+    segment.starting_basis_pair = current_position;
+    segment.ending_basis_pair = current_position + basis_pairs_per_worker;
+    current_position += basis_pairs_per_worker;
+    segments.push_back(segment);
+  }
+  // put any remaining in the last segment
+  segments[num_workers - 1].ending_basis_pair = num_basis_pairs;
+  return segments;
+}
+
+// Function to merge worker results
+bool merge_worker_results(std::vector<WorkerResult>& worker_results,
+			  std::vector<uint8_t>& term_states,
+			  std::vector<uint8_t>& pair_states,
+			  std::vector<uint8_t>& basis_states,
+			  bool& has_contradiction) {
+    
+  bool changed = false;
+  has_contradiction = false;  // Initialize to false
+    
+  // Initialize with the first worker's results
+  term_states = worker_results[0].term_states;
+  pair_states = worker_results[0].pair_states;
+  basis_states = worker_results[0].basis_states;
+    
+  if (worker_results[0].has_contradiction) {
+    has_contradiction = true;
+    return false; // No need to continue if contradiction found
+  }
+    
+  // Merge results from other workers
+  for (size_t i = 1; i < worker_results.size(); i++) {
+    auto& worker = worker_results[i];
+        
+    if (worker.has_contradiction) {
+      has_contradiction = true;
+      return false; // No need to continue if contradiction found
+    }
+        
+    // Intersection of allowed states (bitwise AND)
+    for (size_t j = 0; j < term_states.size(); j++) {
+      uint8_t old_term = term_states[j];
+      term_states[j] &= worker.term_states[j];
+      if (term_states[j] != old_term) changed = true;
+      if (term_states[j] == 0) {
+	has_contradiction = true;
+	return false; // Contradiction detected during merge
+      }
+    }
+        
+    for (size_t j = 0; j < pair_states.size(); j++) {
+      uint8_t old_pair = pair_states[j];
+      pair_states[j] &= worker.pair_states[j];
+      if (pair_states[j] != old_pair) changed = true;
+      if (pair_states[j] == 0) {
+	has_contradiction = true;
+	return false; // Contradiction detected during merge
+      }
+    }
+        
+    for (size_t j = 0; j < basis_states.size(); j++) {
+      uint8_t old_basis = basis_states[j];
+      basis_states[j] &= worker.basis_states[j];
+      if (basis_states[j] != old_basis) changed = true;
+      if (basis_states[j] == 0) {
+	has_contradiction = true;
+	return false; // Contradiction detected during merge
+      }
+    }
+  }
+    
+  return changed;
+}
+
+// Worker function that processes a segment
+WorkerResult process_segment(const WorkSegment& segment,
+			     const std::vector<uint8_t>& term_states,
+			     const std::vector<uint8_t>& pair_states,
+			     const std::vector<uint8_t>& basis_states) {
+    
+  WorkerResult result;
+  result.term_states = term_states;
+  result.pair_states = pair_states;
+  result.basis_states = basis_states;
+  result.has_contradiction = false;
+    
+  // Process this segment
+  result.has_changed =
+    ensure_global_consistency(result.term_states,
+			      result.pair_states,
+			      result.basis_states,
+			      result.has_contradiction,
+			      segment.starting_basis_pair,
+			      segment.ending_basis_pair);
+  return result;
+}
+
+bool parallel_ensure_global_consistency
+(std::vector<uint8_t>& term_states,
+ std::vector<uint8_t>& pair_states,
+ std::vector<uint8_t>& basis_states,
+ bool& has_contradiction,
+ uint64_t starting_basis_pair,
+ uint64_t ending_basis_pair,
+ int num_workers) {
+  if(num_workers < 2) {
+    // fallback to sequential solver if only one worker
+    return ensure_global_consistency(term_states,
+				     pair_states,
+				     basis_states,
+				     has_contradiction,
+				     starting_basis_pair,
+				     ending_basis_pair);
+  }
+  auto start = std::chrono::high_resolution_clock::now();
+  bool changed = true;
+  bool globally_changed = false;
+  has_contradiction = false;
+  int iterations = 0;
+  while (changed && !has_contradiction) {
+    ++iterations;
+    std::cout << "Iteration " << iterations << "..." << std::endl;
+
+    // Divide work among workers
+    auto work_segments = divide_work(term_states.size(), num_workers);
+
+    // Spawn worker threads
+    std::vector<std::future<WorkerResult>> futures;
+    for (const auto& segment : work_segments) {
+      futures.push_back(std::async(std::launch::async, 
+				   process_segment, 
+				   segment, 
+				   term_states, 
+				   pair_states, 
+				   basis_states));
+    }
+
+    // Collect results
+    std::vector<WorkerResult> worker_results;
+    for (auto& future : futures) {
+      worker_results.push_back(future.get());
+    }
+        
+    // Merge results
+    changed = merge_worker_results(worker_results, 
+				   term_states, 
+				   pair_states, 
+				   basis_states, 
+				   has_contradiction);
+    globally_changed = (globally_changed ||changed);
+    if (worker_results.size() > 0 && worker_results[0].has_contradiction) {
+      has_contradiction = true;
+    }
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration =
+    std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  std::cout << "Results:\n";
+  std::cout << "- Iterations: " << iterations << std::endl;
+  std::cout << "- Contradiction detected: "
+	    << (has_contradiction ? "Yes" : "No") << std::endl;
+  std::cout << "- Time taken: " << duration.count() << " ms" << std::endl;
+  return globally_changed;;
+}

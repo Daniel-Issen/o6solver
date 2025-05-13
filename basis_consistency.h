@@ -62,10 +62,20 @@ UpdateResult ensure_basis_consistency(
     std::vector<uint8_t>& basis_states);
 
 // Ensure consistency across all bases in the system
-void ensure_global_consistency(std::vector<uint8_t>& term_states,
+bool ensure_global_consistency(std::vector<uint8_t>& term_states,
 			       std::vector<uint8_t>& pair_states,
 			       std::vector<uint8_t>& basis_states,
 			       bool& has_contradiction,
 			       uint64_t starting_basis_pair,
 			       uint64_t ending_basis_pair);
+
+bool parallel_ensure_global_consistency
+(std::vector<uint8_t>& term_states,
+ std::vector<uint8_t>& pair_states,
+ std::vector<uint8_t>& basis_states,
+ bool& has_contradiction,
+ uint64_t starting_basis_pair,
+ uint64_t ending_basis_pair,
+ int num_workers);
+
 
