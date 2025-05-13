@@ -30,8 +30,7 @@ SRCS = cnf_3sat_solver_main.cc \
        pairing.cc \
        basis_consistency.cc \
        solution_finder.cc \
-       test_utils.cc \
-       parallel_solver.cc
+       test_utils.cc
 OBJS = $(SRCS:.cc=.o)
 DEPS = $(SRCS:.cc=.d)
 

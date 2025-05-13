@@ -34,18 +34,10 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
 		       std::vector<uint8_t>& pair_states,
 		       std::vector<uint8_t>& basis_states);
 
-// Directly apply CNF constraints without creating unnecessary dummy variables
-bool apply_optimized_constraints
-(const std::vector<std::vector<Literal>>& cnf_clauses,
- int& num_vars,
- std::vector<uint8_t>& term_states,
- std::vector<uint8_t>& pair_states,
- std::vector<uint8_t>& basis_states,
- std::vector<uint64_t>& clause_basis_indices);
-
 // Check satisfiability using the optimized approach
 bool check_satisfiability
-(const std::vector<std::vector<Literal>>& cnf_clauses, 
+(int num_workers,
+ const std::vector<std::vector<Literal>>& cnf_clauses, 
  int num_vars, 
  bool find_solution = false,
  const std::string& solution_file = "");

@@ -24,6 +24,7 @@
 #include "basis_consistency.h"
 #include "pairing.h"
 #include "constants.h"
+#include "parallel_solver.h"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -85,7 +86,8 @@ SATSolution determine_solution
 (std::vector<uint8_t>& basis_states,
  std::vector<uint8_t>& pair_states,
  std::vector<uint8_t>& term_states,
- uint64_t n) {
+ uint64_t n,
+ int num_workers) {
 
   std::cout << "Attempting to determine a solution..." << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
@@ -143,12 +145,22 @@ SATSolution determine_solution
     uint64_t ending_basis_pair =
       calculate_array_size_2d(calculate_array_size_3d(n));
     bool has_contradiction = false;
-    ensure_global_consistency(term_states,
-			      pair_states,
-			      basis_states,
-			      has_contradiction,
-			      starting_basis_pair,
-			      ending_basis_pair);
+    if(num_workers < 2) {
+      ensure_global_consistency(term_states,
+				pair_states,
+				basis_states,
+				has_contradiction,
+				starting_basis_pair,
+				ending_basis_pair);
+    } else {
+      parallel_ensure_global_consistency(term_states,
+					 pair_states,
+					 basis_states,
+					 has_contradiction,
+					 starting_basis_pair,
+					 ending_basis_pair,
+					 num_workers);
+    }
     starting_position = basis_idx;
   }
   SATSolution solution;

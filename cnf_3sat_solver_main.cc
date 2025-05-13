@@ -134,26 +134,12 @@ int main(int argc, char* argv[]) {
             
       // Check satisfiability
       std::cout << "\nChecking satisfiability...\n";
-      bool result;
-      
-      if (num_workers > 1) {
-        // Use parallel solver
-        result = parallel_check_satisfiability(
-					       cnf_clauses,
-					       num_vars,
-					       num_workers,
-					       find_solution,
-					       solution_file
-					       );
-      } else {
-        // Use sequential solver
-        result = check_satisfiability(
-				      cnf_clauses,
-				      num_vars,
-				      find_solution,
-				      solution_file
-				      );
-      }
+      bool result =
+        check_satisfiability(num_workers,
+			     cnf_clauses,
+			     num_vars,
+			     find_solution,
+			     solution_file);
             
       // Run brute force check for small instances
       int num_solutions = 0;

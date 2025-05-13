@@ -128,7 +128,7 @@ void test_random_formulas(int num_tests, int num_vars, int num_clauses, int max_
     // Check satisfiability
     std::cout << std::endl << "Checking satisfiability..." << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
-    bool result = check_satisfiability(cnf_formula, num_vars, find_solution);
+    bool result = check_satisfiability(1,cnf_formula, num_vars, find_solution);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = 
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

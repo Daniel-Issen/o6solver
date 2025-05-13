@@ -25,6 +25,7 @@
 #include "pairing.h"
 #include "basis_consistency.h"
 #include "solution_finder.h"
+#include "parallel_solver.h"
 #include <chrono>
 #include <iostream>
 #include <algorithm>
@@ -133,7 +134,8 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
 
 // Check satisfiability
 bool check_satisfiability
-(const std::vector<std::vector<Literal>>& cnf_clauses, 
+(int num_workers,
+ const std::vector<std::vector<Literal>>& cnf_clauses, 
  int num_vars, 
  bool find_solution,
  const std::string& solution_file) {
@@ -162,11 +164,20 @@ bool check_satisfiability
   uint64_t ending_basis_pair =
     calculate_array_size_2d(calculate_array_size_3d(working_num_vars));
   auto start = std::chrono::high_resolution_clock::now();
-  ensure_global_consistency(term_states, 
-			    pair_states, 
-			    basis_states, 
-			    has_contradiction,
-			    0,ending_basis_pair);
+  if(num_workers < 2) {
+    ensure_global_consistency(term_states, 
+			      pair_states, 
+			      basis_states, 
+			      has_contradiction,
+			      0,ending_basis_pair);
+  } else {
+    parallel_ensure_global_consistency(term_states, 
+				       pair_states, 
+				       basis_states, 
+				       has_contradiction,
+				       0,ending_basis_pair,
+				       num_workers);
+  }
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = 
     std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -186,7 +197,9 @@ bool check_satisfiability
       determine_solution(basis_states, 
 			 pair_states,
 			 term_states,
-			 num_vars);
+			 num_vars,
+			 0);
+			 //			 num_workers);
 
     // Validate the solution against the original problem
     bool valid = validate_solution(solution, cnf_clauses);

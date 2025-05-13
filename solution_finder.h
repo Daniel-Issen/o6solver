@@ -39,11 +39,11 @@ bool validate_solution(const SATSolution& solution,
                        const std::vector<std::vector<Literal>>& cnf_clauses);
 
 // Function to determine a solution from the current states
-SATSolution determine_solution(
-    std::vector<uint8_t>& basis_states,
-    std::vector<uint8_t>& pair_states,
-    std::vector<uint8_t>& term_states,
-    uint64_t n);
+SATSolution determine_solution(std::vector<uint8_t>& basis_states,
+			       std::vector<uint8_t>& pair_states,
+			       std::vector<uint8_t>& term_states,
+			       uint64_t n,
+			       int num_workers);
 
 // Helper function to save solution to a file
 bool save_solution_to_file(const SATSolution& solution,
