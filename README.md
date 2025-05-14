@@ -17,8 +17,8 @@ is consistently outperformed by minisat.  You won't be using this to
 factor RSA keys anytime soon.  The algorithm is easily parallelized
 however and this program implements a simple parallelization strategy.
 
-To build, use the included Makefile.  The program relies on __uint128_t
-which is a non-standard data type implemented by g++ and clang.
+To build, use the included Makefile.  The program relies on
+__uint128_t, a non-standard data type implemented by g++ and clang.
 
 enjoy
 
