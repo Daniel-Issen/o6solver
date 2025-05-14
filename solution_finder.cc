@@ -97,7 +97,7 @@ SATSolution determine_solution
   
   // set three terms at a time
   Index starting_position = 0;
-  for(i = 0; i < term_states.size() - 3; i += 3) {
+  for(i = 0; i < term_states.size() - 2; i += 3) {
     j = i + 1;
     k = j + 1;
     Index basis_idx = pair3d(i,j,k);
