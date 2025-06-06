@@ -37,7 +37,8 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
 		       int& num_vars,
 		       std::vector<uint8_t>& term_states,
 		       std::vector<uint8_t>& pair_states,
-		       std::vector<uint8_t>& basis_states) {  
+		       std::vector<uint8_t>& basis_states) {
+
   Index max_var_id = num_vars;
   for(const auto& clause : cnf_clauses) {
     std::vector<Literal> sorted_clause = clause;
@@ -99,10 +100,10 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
 	[(int)sorted_clause[1].negated]
 	[0];
       
-      max_var_id++; // Increment after use
+      ++max_var_id; // Increment after use
       
       // Handle intermediate clauses (¬z_i ∨ term ∨ z_{i+1})
-      for (size_t i = 2; i < sorted_clause.size() - 2; i++) {
+      for (size_t i = 2; i < sorted_clause.size() - 2; ++i) {
         Index prev_var_id = max_var_id - 1;
         idx = pair3d(sorted_clause[i].var -1,
 		     prev_var_id,
@@ -112,7 +113,7 @@ bool apply_constraints(const std::vector<std::vector<Literal>>& cnf_clauses,
           [(int)sorted_clause[i].negated]
           [1]
           [0];
-        max_var_id++;
+        ++max_var_id;
       }
       
       // Handle last clause ( -z_i v (last_term -1) v (last_term)
@@ -158,6 +159,14 @@ bool check_satisfiability
     std::cout << "Formula is unsatisfiable (detected during initial constraint application)" << std::endl;
     return false;
   }
+
+  // Cross-level consistency check
+  bool cross_level_consistent =
+    ensure_cross_level_consistency(term_states, pair_states, basis_states);
+  if (!cross_level_consistent) {
+    std::cout << "Formula is unsatisfiable (detected during cross-level consistency check)" << std::endl;
+    return false;
+  }
   // Run global consistency check
   bool has_contradiction = false;
   Index ending_basis_pair =
@@ -185,7 +194,7 @@ bool check_satisfiability
   std::cout << "- Contradiction detected: "
 	    << (has_contradiction ? "Yes" : "No") << std::endl;
   std::cout << "- Time taken: " << duration.count() << " ms" << std::endl;
-    
+
   // If a contradiction was detected, the formula is unsatisfiable
   if (has_contradiction) {
     return false;
@@ -197,8 +206,7 @@ bool check_satisfiability
 			 pair_states,
 			 term_states,
 			 num_vars,
-			 0);
-			 //			 num_workers);
+			 num_workers);
 
     // Validate the solution against the original problem
     bool valid = validate_solution(solution, cnf_clauses);
@@ -226,3 +234,59 @@ bool check_satisfiability
   // If no contradiction was found, the formula is satisfiable
   return true;
 }
+
+// Add this function (outside the #ifdef)
+bool ensure_cross_level_consistency(std::vector<uint8_t>& term_states,
+				    std::vector<uint8_t>& pair_states,
+				    std::vector<uint8_t>& basis_states) {
+  bool changed = true;
+  bool globally_changed = false;
+    
+  while (changed) {
+    changed = false;
+        
+    // Propagate between terms and pairs
+    for (Index i = 0; i < term_states.size(); ++i) {
+      for (Index j = i + 1; j < term_states.size(); ++j) {
+	UpdateResult result =
+	  update_pair_states(i, j, term_states, pair_states);
+	if (result.has_zero || term_states[i] == 0 || term_states[j] == 0) {
+	  return false; // Contradiction detected
+	}
+                
+	if (result.changed) {
+	  changed = true;
+	  globally_changed = true;
+	}
+      }
+    }
+#if 0        
+    // Also check basis states if we have any
+    if (!basis_states.empty()) {
+      for (Index i = 0; i < term_states.size() - 2; i++) {
+	for (Index j = i + 1; j < term_states.size() - 1; j++) {
+	  for (Index k = j + 1; k < term_states.size(); k++) {
+	    Index basis_idx = pair3d(i, j, k);
+	    UpdateResult result = update_basis_states(i, j, k, basis_idx,
+						      term_states, pair_states, basis_states);
+                        
+	    if (result.has_zero) {
+	      return false; // Contradiction detected
+	    }
+                        
+	    if (result.changed) {
+	      changed = true;
+	      globally_changed = true;
+	    }
+	  }
+	}
+      }
+    }
+#endif
+  }
+  return true; // No contradiction detected
+}
+
+
+
+

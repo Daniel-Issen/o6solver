@@ -92,7 +92,7 @@ bool check_satisfiability_brute_force
 }
 
 // Test random formulas with algorithm selection
-void test_random_formulas(int num_tests, int num_vars, int num_clauses, int max_literals_per_clause, bool find_solution) {
+void test_random_formulas(int num_workers,int num_tests, int num_vars, int num_clauses, int max_literals_per_clause, bool find_solution) {
   std::cout << "Testing " << num_tests << " random formulas..." << std::endl;
   std::cout << "Parameters: " 
 	    << num_vars << " variables, " 
@@ -118,17 +118,17 @@ void test_random_formulas(int num_tests, int num_vars, int num_clauses, int max_
     // Print a sample of the formula
     std::cout << "Random formula:\n";
     for (size_t i = 0; i < cnf_formula.size(); i++) {
-      std::cout << "(";
       for (size_t j = 0; j < cnf_formula[i].size(); j++) {
 	std::cout << cnf_formula[i][j].to_string();
-	if (j < cnf_formula[i].size() - 1) std::cout << " ∨ ";
+	if (j < cnf_formula[i].size() - 1) std::cout << " ";
       }
-      std::cout << ")" << std::endl;
+      std::cout << " 0" << std::endl;
     }
     // Check satisfiability
     std::cout << std::endl << "Checking satisfiability..." << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
-    bool result = check_satisfiability(1,cnf_formula, num_vars, find_solution);
+    bool result =
+      check_satisfiability(num_workers,cnf_formula, num_vars, find_solution);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = 
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

@@ -30,7 +30,11 @@
 #include <tuple>
 #include <cstdint>
 
+#if 0
 typedef __uint128_t Index;
+#else
+typedef uint64_t Index;
+#endif
 
 // Maps (i,j) where i < j to a unique index
 Index pair2d(Index i, Index j);

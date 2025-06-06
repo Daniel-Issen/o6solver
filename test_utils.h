@@ -32,7 +32,8 @@ bool check_satisfiability_brute_force
  int& num_solutions);
 
 // Test random formulas with algorithm selection
-void test_random_formulas(int num_tests,
+void test_random_formulas(int num_workers,
+			  int num_tests,
 			  int num_vars,
 			  int num_clauses,
 			  int max_literals_per_clause,

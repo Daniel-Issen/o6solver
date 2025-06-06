@@ -42,7 +42,6 @@ int main(int argc, char* argv[]) {
   int test_clauses = 20;
   int max_literals = 3;
   int num_workers = 1;  // Default to sequential execution
-    
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
     if (arg == "--test" || arg == "-t") {
@@ -73,7 +72,7 @@ int main(int argc, char* argv[]) {
         solution_file = argv[i+1];
         i++;
       }
-    } else if (arg == "--workers" || arg == "-w") {  // New parameter
+    } else if (arg == "--workers" || arg == "-w") {
       if (i + 1 < argc) {
         num_workers = std::stoi(argv[i+1]);
         i++;
@@ -94,11 +93,12 @@ int main(int argc, char* argv[]) {
       cnf_file = arg;
     }
   }
-    
+
   try {
     if (run_tests) {
       // Run tests on random formulas
-      test_random_formulas(num_tests,
+      test_random_formulas(num_workers,
+			   num_tests,
                            test_vars,
                            test_clauses,
                            max_literals,
@@ -116,12 +116,11 @@ int main(int argc, char* argv[]) {
       // Print a sample of the clauses
       std::cout << "\nSample clauses:\n";
       for (size_t i = 0; i < std::min(cnf_clauses.size(), size_t(10)); i++) {
-        std::cout << "(";
         for (size_t j = 0; j < cnf_clauses[i].size(); j++) {
           std::cout << cnf_clauses[i][j].to_string();
-          if (j < cnf_clauses[i].size() - 1) std::cout << " ∨ ";
+          if (j < cnf_clauses[i].size() - 1) std::cout << " ";
         }
-        std::cout << ")\n";
+        std::cout << " 0\n";
       }
       if (cnf_clauses.size() > 10) {
         std::cout << "... and " << (cnf_clauses.size() - 10)
@@ -166,11 +165,7 @@ int main(int argc, char* argv[]) {
           std::cout << "Cannot determine a solution as the formula is unsatisfiable.\n";
         }
       }
-    } else {
-      // If no file specified and no test requested, run a small demo
-      std::cout << "No CNF file specified. Running a small demo with random formula...\n\n";
-      test_random_formulas(3, 8, 15, 3, find_solution);
-    }
+    } 
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 1;

@@ -41,3 +41,9 @@ bool check_satisfiability
  int num_vars, 
  bool find_solution = false,
  const std::string& solution_file = "");
+
+// Cross-level consistency checking
+bool ensure_cross_level_consistency(std::vector<uint8_t>& term_states,
+                                   std::vector<uint8_t>& pair_states,
+                                   std::vector<uint8_t>& basis_states);
+

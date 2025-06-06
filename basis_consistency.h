@@ -79,4 +79,3 @@ bool parallel_ensure_global_consistency
  Index ending_basis_pair,
  int num_workers);
 
-
